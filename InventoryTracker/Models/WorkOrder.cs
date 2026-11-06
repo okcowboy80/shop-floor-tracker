@@ -1,23 +1,25 @@
-﻿
-namespace InventoryTracker.Models
+﻿using System.Collections.ObjectModel;
+
+namespace InventoryTracker.Models;
+
+public class WorkOrder
 {
-    public class WorkOrder
-    {
-        public int Id { get; set; }
+    public int Id { get; set; }
 
-        public string JobNumber { get; set; } = "";
+    public string JobNumber { get; set; } = "";
 
-        public int ItemId { get; set; }          // foreign key to the part
-        public Item Item { get; set; } = null!;  // navigation property
+    public int ItemId { get; set; }          // foreign key to the part
+    public Item Item { get; set; } = null!;  // navigation property
 
-        public int Quantity { get; set; }
+    public int Quantity { get; set; }
 
-        public WorkOrderStatus Status { get; set; } = WorkOrderStatus.Draft;
+    public WorkOrderStatus Status { get; set; } = WorkOrderStatus.Draft;
 
-        public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
-        public DateTime? ReleasedAtUtc { get; set; }
-        public DateTime? CompletedAtUtc { get; set; }
+    public DateTime? ReleasedAtUtc { get; set; }
+    public DateTime? CompletedAtUtc { get; set; }
 
-    }
+    public ICollection<WorkOrderOperation> Operations { get; set; } =
+        new ObservableCollection<WorkOrderOperation>();
 }

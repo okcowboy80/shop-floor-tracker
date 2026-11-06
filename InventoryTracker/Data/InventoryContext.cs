@@ -14,7 +14,8 @@ public class InventoryContext : DbContext
     public DbSet<Operator> Operators => Set<Operator>();
     public DbSet<Operation> Operations => Set<Operation>();
     public DbSet<RoutingStep> RoutingSteps => Set<RoutingStep>();
-    public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>(); // New
+    public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
+    public DbSet<WorkOrderOperation> WorkOrderOperations => Set<WorkOrderOperation>(); // New
 
     public static string DbPath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -70,21 +71,45 @@ public class InventoryContext : DbContext
             .HasForeignKey(r => r.OperationId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // New: every job number must be unique
+        // Every job number must be unique
         modelBuilder.Entity<WorkOrder>()
             .HasIndex(w => w.JobNumber)
             .IsUnique();
 
-        // New: store status as readable text instead of a number
+        // Store status as readable text instead of a number
         modelBuilder.Entity<WorkOrder>()
             .Property(w => w.Status)
             .HasConversion<string>();
 
-        // New: don't allow deleting a part that has work orders
+        // Don't allow deleting a part that has work orders
         modelBuilder.Entity<WorkOrder>()
             .HasOne(w => w.Item)
             .WithMany()
             .HasForeignKey(w => w.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // New: a job can't have two operations at the same sequence number
+        modelBuilder.Entity<WorkOrderOperation>()
+            .HasIndex(o => new { o.WorkOrderId, o.Sequence })
+            .IsUnique();
+
+        // New: store operation status as readable text
+        modelBuilder.Entity<WorkOrderOperation>()
+            .Property(o => o.Status)
+            .HasConversion<string>();
+
+        // New: deleting a work order must not erase its operation history
+        modelBuilder.Entity<WorkOrderOperation>()
+            .HasOne(o => o.WorkOrder)
+            .WithMany(w => w.Operations)
+            .HasForeignKey(o => o.WorkOrderId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // New: don't allow deleting an operation used on a job
+        modelBuilder.Entity<WorkOrderOperation>()
+            .HasOne(o => o.Operation)
+            .WithMany()
+            .HasForeignKey(o => o.OperationId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
