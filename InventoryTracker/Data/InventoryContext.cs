@@ -10,6 +10,9 @@ public class InventoryContext : DbContext
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<StockLevel> StockLevels => Set<StockLevel>();
 
+    public DbSet<Operation> Operations => Set<Operation>();
+    public DbSet<Operator> Operators => Set<Operator>();
+
     public static string DbPath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "InventoryTracker", "inventory.db");
