@@ -15,7 +15,8 @@ public class InventoryContext : DbContext
     public DbSet<Operation> Operations => Set<Operation>();
     public DbSet<RoutingStep> RoutingSteps => Set<RoutingStep>();
     public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
-    public DbSet<WorkOrderOperation> WorkOrderOperations => Set<WorkOrderOperation>(); // New
+    public DbSet<WorkOrderOperation> WorkOrderOperations => Set<WorkOrderOperation>();
+    public DbSet<OperationSignOff> OperationSignOffs => Set<OperationSignOff>(); // New
 
     public static string DbPath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -88,28 +89,47 @@ public class InventoryContext : DbContext
             .HasForeignKey(w => w.ItemId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // New: a job can't have two operations at the same sequence number
+        // A job can't have two operations at the same sequence number
         modelBuilder.Entity<WorkOrderOperation>()
             .HasIndex(o => new { o.WorkOrderId, o.Sequence })
             .IsUnique();
 
-        // New: store operation status as readable text
+        // Store operation status as readable text
         modelBuilder.Entity<WorkOrderOperation>()
             .Property(o => o.Status)
             .HasConversion<string>();
 
-        // New: deleting a work order must not erase its operation history
+        // Deleting a work order must not erase its operation history
         modelBuilder.Entity<WorkOrderOperation>()
             .HasOne(o => o.WorkOrder)
             .WithMany(w => w.Operations)
             .HasForeignKey(o => o.WorkOrderId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // New: don't allow deleting an operation used on a job
+        // Don't allow deleting an operation used on a job
         modelBuilder.Entity<WorkOrderOperation>()
             .HasOne(o => o.Operation)
             .WithMany()
             .HasForeignKey(o => o.OperationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // New: store sign-off type as readable text
+        modelBuilder.Entity<OperationSignOff>()
+            .Property(s => s.Type)
+            .HasConversion<string>();
+
+        // New: deleting an operation row must not erase its sign-offs
+        modelBuilder.Entity<OperationSignOff>()
+            .HasOne(s => s.WorkOrderOperation)
+            .WithMany(o => o.SignOffs)
+            .HasForeignKey(s => s.WorkOrderOperationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // New: don't allow deleting an operator with sign-off history
+        modelBuilder.Entity<OperationSignOff>()
+            .HasOne(s => s.Operator)
+            .WithMany()
+            .HasForeignKey(s => s.OperatorId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace InventoryTracker.Models
+﻿using System.Collections.ObjectModel;
+
+namespace InventoryTracker.Models
 {
     public class WorkOrderOperation
     {
@@ -13,5 +15,8 @@
         public int Sequence { get; set; }
 
         public OperationStatus Status { get; set; } = OperationStatus.Pending;
+
+        public ICollection<OperationSignOff> SignOffs { get; set; } =
+            new ObservableCollection<OperationSignOff>();
     }
 }
