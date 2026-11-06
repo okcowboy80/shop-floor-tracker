@@ -13,7 +13,8 @@ public class InventoryContext : DbContext
     // Shop floor tables
     public DbSet<Operator> Operators => Set<Operator>();
     public DbSet<Operation> Operations => Set<Operation>();
-    public DbSet<RoutingStep> RoutingSteps => Set<RoutingStep>(); // New
+    public DbSet<RoutingStep> RoutingSteps => Set<RoutingStep>();
+    public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>(); // New
 
     public static string DbPath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -57,16 +58,33 @@ public class InventoryContext : DbContext
             .HasIndex(o => o.Name)
             .IsUnique();
 
-        // New: a part can't have two steps at the same sequence number
+        // A part can't have two steps at the same sequence number
         modelBuilder.Entity<RoutingStep>()
             .HasIndex(r => new { r.ItemId, r.Sequence })
             .IsUnique();
 
-        // New: don't allow deleting an operation used by a routing
+        // Don't allow deleting an operation used by a routing
         modelBuilder.Entity<RoutingStep>()
             .HasOne(r => r.Operation)
             .WithMany()
             .HasForeignKey(r => r.OperationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // New: every job number must be unique
+        modelBuilder.Entity<WorkOrder>()
+            .HasIndex(w => w.JobNumber)
+            .IsUnique();
+
+        // New: store status as readable text instead of a number
+        modelBuilder.Entity<WorkOrder>()
+            .Property(w => w.Status)
+            .HasConversion<string>();
+
+        // New: don't allow deleting a part that has work orders
+        modelBuilder.Entity<WorkOrder>()
+            .HasOne(w => w.Item)
+            .WithMany()
+            .HasForeignKey(w => w.ItemId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
