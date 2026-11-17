@@ -6,6 +6,17 @@ namespace InventoryTracker.Data;
 
 public class InventoryContext : DbContext
 {
+    // New: used by the app and by Add-Migration (real inventory.db)
+    public InventoryContext()
+    {
+    }
+
+    // New: used by tests to pass in a different database
+    public InventoryContext(DbContextOptions<InventoryContext> options)
+        : base(options)
+    {
+    }
+
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<StockLevel> StockLevels => Set<StockLevel>();
@@ -16,7 +27,7 @@ public class InventoryContext : DbContext
     public DbSet<RoutingStep> RoutingSteps => Set<RoutingStep>();
     public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
     public DbSet<WorkOrderOperation> WorkOrderOperations => Set<WorkOrderOperation>();
-    public DbSet<OperationSignOff> OperationSignOffs => Set<OperationSignOff>(); // New
+    public DbSet<OperationSignOff> OperationSignOffs => Set<OperationSignOff>();
 
     public static string DbPath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -24,6 +35,12 @@ public class InventoryContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
+        // Changed: only use inventory.db if no database was passed in
+        if (options.IsConfigured)
+        {
+            return;
+        }
+
         Directory.CreateDirectory(Path.GetDirectoryName(DbPath)!);
         options.UseSqlite($"Data Source={DbPath}");
     }
@@ -113,19 +130,19 @@ public class InventoryContext : DbContext
             .HasForeignKey(o => o.OperationId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // New: store sign-off type as readable text
+        // Store sign-off type as readable text
         modelBuilder.Entity<OperationSignOff>()
             .Property(s => s.Type)
             .HasConversion<string>();
 
-        // New: deleting an operation row must not erase its sign-offs
+        // Deleting an operation row must not erase its sign-offs
         modelBuilder.Entity<OperationSignOff>()
             .HasOne(s => s.WorkOrderOperation)
             .WithMany(o => o.SignOffs)
             .HasForeignKey(s => s.WorkOrderOperationId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // New: don't allow deleting an operator with sign-off history
+        // Don't allow deleting an operator with sign-off history
         modelBuilder.Entity<OperationSignOff>()
             .HasOne(s => s.Operator)
             .WithMany()
